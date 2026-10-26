@@ -12,6 +12,7 @@ on:
       - "fetch_calendar.py"
       - "requirements.txt"
       - ".github/workflows/refresh-calendar.yml"
+      - "refresh.txt" # edit this file to force an immediate refresh
 
 permissions:
   contents: read
