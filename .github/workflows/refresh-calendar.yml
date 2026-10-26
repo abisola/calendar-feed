@@ -6,6 +6,12 @@ on:
     # Off-the-hour minute avoids the busiest scheduling slots.
     - cron: "17 5 * * *"
   workflow_dispatch: # lets you run it by hand from the Actions tab
+  push:
+    branches: [main]
+    paths:
+      - "fetch_calendar.py"
+      - "requirements.txt"
+      - ".github/workflows/refresh-calendar.yml"
 
 permissions:
   contents: read
