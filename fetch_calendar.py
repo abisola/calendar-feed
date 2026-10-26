@@ -16,6 +16,7 @@ import sys
 import tempfile
 from datetime import date, datetime, timedelta, timezone
 from urllib.parse import quote
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 import icalendar
@@ -43,8 +44,17 @@ def load_source() -> bytes:
         sys.exit("CALENDAR_ID is not set.")
 
     req = Request(feed_url(calendar_id), headers={"User-Agent": "calendar-feed/1.0"})
-    with urlopen(req, timeout=60) as resp:
-        data = resp.read()
+    try:
+        with urlopen(req, timeout=60) as resp:
+            data = resp.read()
+    except HTTPError as err:
+        if err.code in (403, 404):
+            sys.exit(
+                f"Google returned {err.code} for the calendar feed. The calendar is probably "
+                "not public – tick 'Make available to public' in its settings, or set "
+                "CALENDAR_ID to the calendar's 'Secret address in iCal format'."
+            )
+        raise
     if b"BEGIN:VCALENDAR" not in data[:500]:
         sys.exit("The calendar URL did not return an iCal feed – is the calendar public?")
     return data
