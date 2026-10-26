@@ -1,0 +1,59 @@
+name: Refresh calendar feed
+
+on:
+  schedule:
+    # Every day at 05:17 UTC (cron in GitHub Actions is evaluated in UTC).
+    # Off-the-hour minute avoids the busiest scheduling slots.
+    - cron: "17 5 * * *"
+  workflow_dispatch: # lets you run it by hand from the Actions tab
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build the next-two-weeks ICS
+        env:
+          CALENDAR_ID: ${{ secrets.CALENDAR_ID }}
+          DAYS_AHEAD: "14"
+          OUTPUT_FILE: public/calendar.ics
+        run: python fetch_calendar.py
+
+      - name: Add a simple landing page
+        run: |
+          cat > public/index.html <<'HTML'
+          <!doctype html><meta charset="utf-8"><title>Calendar feed</title>
+          <p><a href="calendar.ics">Download calendar.ics</a> (next 14 days, refreshed daily)</p>
+          HTML
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
